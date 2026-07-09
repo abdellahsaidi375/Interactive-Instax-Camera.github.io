@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Retro Camera</title>
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap");
+
+            /* #explaining_the_function# */
+            * {
+                box-sizing: border-box;
+                outline: none;
+            }
+
+            /* #explaining_the_function# */
+            body {
+                margin: 0;
+                padding: 0;
+                background-color: #d4d4d4;
+                background-image:
+                    radial-gradient(#e0e0e0 15%, transparent 16%),
+                    radial-gradient(#e0e0e0 15%, transparent 16%);
+                background-size: 20px 20px;
+                background-position:
+                    0 0,
+                    10px 10px;
+                height: 100vh;
+                width: 100vw;
+                font-family: sans-serif;
+                overflow: hidden;
+                display: flex;
+                flex-direction: row;
+                user-select: none;
+                touch-action: none;
+            }
+
+            /* #explaining_the_function# */
+            /* --- Camera Zone (left 50%) --- */
+            .camera-zone {
+                flex: 0 0 50%;
+                max-width: 600px;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+                align-items: center;
+                position: relative;
+                z-index: 20;
+                padding: 20px;
+                padding-bottom: 80px;
+            }
+
+            /* #explaining_the_function# */
+            .camera-wrapper {
+                position: relative;
+                width: 100%;
+                max-width: 450px;
+                aspect-ratio: 1 / 1;
+            }
+
+            /* #explaining_the_function# */
+            .camera-img {
+                width: 100%;
+                height: auto;
+                position: relative;
+                z-index: 20;
+                pointer-events: none;
+                filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.4));
+            }
+
+            /* #explaining_the_function# */
+            .shutter-btn {
+                position: absolute;
+                bottom: 42%;
+                left: 18%;
+                width: 11%;
+                height: 11%;
+                border-radius: 50%;
+                z-index: 30;
+                cursor: pointer;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            /* #explaining_the_function# */
+            .ejection-slot {
+                position: absolute;
+                z-index: 15;
+                top: -40%;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 35%;
+                height: 100%;
+                pointer-events: none;
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                padding-bottom: 20%;
+            }
+
+            /* #explaining_the_function# */
+            .desk-zone {
+                flex: 1;
+                position: relative;
+                height: 100%;
+            }
+
+            /* #explaining_the_function# */
+            /* --- Buttons (top-right) --- */
+            .btn-container {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                z-index: 200;
+                display: flex;
+                gap: 10px;
+            }
+
+            /* #explaining_the_function# */
+            .action-btn {
+                background: rgba(255, 255, 255, 0.9);
+                border: 2px solid #d93025;
+                color: #d93025;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-family: "Permanent Marker", cursive;
+                font-size: 14px;
+                cursor: pointer;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                transition: all 0.2s;
+            }
+
+            .action-btn:hover {
+                background: #d93025;
+                color: white;
+            }
+
+            .action-btn:active {
+                transform: scale(0.95);
+            }
+
+            /* #explaining_the_function# */
+            #download-btn {
+                border-color: #222;
+                color: #222;
+            }
+            #download-btn:hover {
+                background: #222;
+                color: white;
+            }
+
+            /* #explaining_the_function# */
+            /* --- Polaroid Card --- */
+            .polaroid {
+                width: 170px;
+                position: absolute;
+                cursor: grab;
+                pointer-events: auto;
+                transform-origin: center center;
+                touch-action: none;
+                transition:
+                    opacity 0.5s ease-out,
+                    transform 0.2s;
+                perspective: 1000px;
+            }
+
+            /* #explaining_the_function# */
+            .polaroid-inner {
+                position: relative;
+                width: 100%;
+                height: 100%;
+                text-align: center;
+                transition: transform 0.6s;
+                transform-style: preserve-3d;
+            }
+
+            .polaroid.flipped .polaroid-inner {
+                transform: rotateY(180deg);
+            }
+
+            /* #explaining_the_function# */
+            .polaroid-front,
+            .polaroid-back {
+                position: relative;
+                width: 100%;
+                height: 100%;
+                -webkit-backface-visibility: hidden;
+                backface-visibility: hidden;
+                background: #fdfdfd;
+                padding: 10px 10px 55px 10px;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            }
+
+            /* #explaining_the_function# */
+            .polaroid-back {
+                position: absolute;
+                top: 0;
+                left: 0;
+                transform: rotateY(180deg);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+            }
+
+            .polaroid:active .polaroid-front,
+            .polaroid:active .polaroid-back {
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            }
+
+            .polaroid:active {
+                z-index: 10000 !important;
+            }
+
+            /* #explaining_the_function# */
+            .polaroid img {
+                width: 100%;
+                height: 170px;
+                object-fit: cover;
+                background: #222;
+                border: 1px solid #e0e0e0;
+                pointer-events: none;
+                display: block;
+                filter: blur(0) grayscale(0) brightness(1);
+                will-change: filter;
+            }
+
+            /* #explaining_the_function# */
+            .polaroid.developing-start img {
+                filter: blur(15px) grayscale(0.5) brightness(0.9);
+            }
+
+            .polaroid.developing-slow img {
+                transition: filter 6s ease-in-out;
+                filter: blur(0) grayscale(0) brightness(1);
+            }
+
+            .polaroid.developing-fast img {
+                transition: filter 3s ease-out !important;
+                filter: blur(0) grayscale(0) brightness(1);
+            }
+
+            /* #explaining_the_function# */
+            .polaroid .caption-main {
+                position: absolute;
+                bottom: 22px;
+                left: 10px;
+                width: 150px;
+                text-align: center;
+                color: #222;
+                opacity: 0.9;
+                cursor: text;
+                font-family: "Permanent Marker", cursive;
+                font-size: 14px;
+                line-height: 1.1;
+                min-height: 18px;
+            }
+
+            .polaroid .caption-main:empty::before {
+                content: "May I meet you";
+                opacity: 0.5;
+            }
+
+            /* #explaining_the_function# */
+            .polaroid .caption-date {
+                position: absolute;
+                bottom: 8px;
+                left: 10px;
+                width: 150px;
+                text-align: center;
+                font-family: "Permanent Marker", cursive;
+                font-size: 10px;
+                color: #555;
+                pointer-events: none;
+                user-select: none;
+            }
+
+            /* #explaining_the_function# */
+            .polaroid.ejecting {
+                transform: translateY(100%);
+                animation: riseOut 2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+            }
+
+            @keyframes riseOut {
+                0% {
+                    transform: translateY(100%);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(-50px);
+                    opacity: 1;
+                }
+            }
+
+            /* #explaining_the_function# */
+            .flip-btn {
+                position: absolute;
+                top: 50%;
+                right: -15px;
+                transform: translateY(-50%);
+                width: 32px;
+                height: 32px;
+                background: rgba(0, 0, 0, 0.15);
+                border-radius: 50%;
+                border: none;
+                cursor: pointer;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                z-index: 60;
+                color: #555;
+                transition:
+                    background 0.2s,
+                    opacity 0.3s;
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            .polaroid.can-share .flip-btn {
+                display: flex;
+            }
+
+            .polaroid.can-share:hover .flip-btn {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .polaroid.can-share.flipped:hover .flip-btn {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .flip-btn:hover {
+                background: rgba(0, 0, 0, 0.2);
+                color: #222;
+            }
+
+            .polaroid.flipped .polaroid-front .flip-btn {
+                display: none !important;
+            }
+            .polaroid:not(.flipped) .polaroid-back .flip-btn {
+                display: none !important;
+            }
+
+            /* #explaining_the_function# */
+            .secret-input {
+                width: 100%;
+                height: 100px;
+                border: 1px dashed #ccc;
+                padding: 10px;
+                font-family: "Permanent Marker", cursive;
+                font-size: 14px;
+                color: #333;
+                resize: none;
+                background: #f8f8f8;
+                margin-bottom: 10px;
+            }
+
+            /* #explaining_the_function# */
+            .flash {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: white;
+                opacity: 0;
+                pointer-events: none;
+                z-index: 10000;
+                transition: opacity 0.1s;
+            }
+            .flash-active {
+                opacity: 1;
+            }
+
+            /* #explaining_the_function# */
+            @media (max-width: 768px) {
+                body {
+                    flex-direction: column;
+                }
+                .camera-zone {
+                    flex: 0 0 auto;
+                    width: 100%;
+                    height: auto;
+                    padding-top: 60px;
+                    padding-bottom: 40px;
+                    justify-content: center;
+                }
+                .desk-zone {
+                    width: 100%;
+                    height: 100%;
+                }
+                .btn-container {
+                    top: 10px;
+                    right: 10px;
+                }
+                .action-btn {
+                    font-size: 10px;
+                    padding: 5px 10px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="btn-container">
+            <button
+                class="action-btn"
+                id="download-btn"
+                title="Download Collage"
+            >
+                DOWNLOAD
+            </button>
+            <button class="action-btn" id="reset-btn" title="Clear all photos">
+                RESET
+            </button>
+        </div>
+
+        <div class="camera-zone">
+            <div class="camera-wrapper">
+                <div class="ejection-slot" id="slot"></div>
+                <img
+                    src="./src/img/retro-camera.webp"
+                    class="camera-img"
+                    alt="Retro Camera"
+                    onerror="this.src = './src/img/retro-camera.png'"
+                />
+                <div class="shutter-btn" id="shutter"></div>
+            </div>
+        </div>
+
+        <div class="desk-zone" id="desk"></div>
+
+        <div class="flash" id="flash"></div>
+        <canvas id="canvas" style="display: none"></canvas>
+
+        <script>
+            //#explaining_the_function#
+            var canvas = document.getElementById("canvas");
+            var shutter = document.getElementById("shutter");
+            var slot = document.getElementById("slot");
+            var flash = document.getElementById("flash");
+            var desk = document.getElementById("desk");
+            var resetBtn = document.getElementById("reset-btn");
+            var downloadBtn = document.getElementById("download-btn");
+            var cameraZone = document.querySelector(".camera-zone");
+            var btnContainer = document.querySelector(".btn-container");
+            //#explaining_the_function#
+            var printSound = new Audio("/polaroid-camera.mp3");
+            printSound.volume = 0.6;
+
+            var demosCleared = true;
+
+            //#explaining_the_function#
+            function getTodayDateString() {
+                var d = new Date();
+                var yyyy = d.getFullYear();
+                var mm = String(d.getMonth() + 1).padStart(2, "0");
+                var dd = String(d.getDate()).padStart(2, "0");
+                return yyyy + "/" + mm + "/" + dd;
+            }
+
+            //#explaining_the_function#
+            function createPolaroidElement(
+                imgSrc,
+                dateStr,
+                top,
+                left,
+                rot,
+                isDemo,
+                isNew,
+            ) {
+                var MAX_LETTERS = 27;
+                var MAX_CAPTION_LENGTH = 14;
+                var MAX_SECRET_LENGTH = 20;
+
+                var div = document.createElement("div");
+                div.className = isDemo ? "polaroid demo-polaroid" : "polaroid";
+
+                if (isNew) {
+                    div.classList.add("developing-start");
+                }
+
+                div.innerHTML =
+                    '<div class="polaroid-inner">' +
+                    '<div class="polaroid-front">' +
+                    '<img src="' +
+                    imgSrc +
+                    '">' +
+                    '<button class="flip-btn" title="Flip to back">\u21BB</button>' +
+                    '<div class="caption-main" contenteditable="true" spellcheck="false">May I meet you</div>' +
+                    '<div class="caption-date">' +
+                    dateStr +
+                    "</div>" +
+                    "</div>" +
+                    '<div class="polaroid-back">' +
+                    '<textarea class="secret-input" placeholder="Secret message"></textarea>' +
+                    '<button class="flip-btn" title="Flip to front">\u21BB</button>' +
+                    "</div>" +
+                    "</div>";
+
+                if (top) div.style.top = top;
+                if (left) div.style.left = left;
+                if (rot) div.style.transform = "rotate(" + rot + ")";
+
+                if (isDemo) {
+                    desk.appendChild(div);
+                } else if (isNew) {
+                    requestAnimationFrame(function () {
+                        div.offsetWidth;
+                        div.classList.add("developing-slow");
+                        div.classList.remove("developing-start");
+                    });
+                }
+
+                var flipBtns = div.querySelectorAll(".flip-btn");
+                flipBtns.forEach(function (btn) {
+                    btn.addEventListener("click", function (e) {
+                        e.stopPropagation();
+                        div.classList.toggle("flipped");
+                    });
+                });
+
+                var secretInput = div.querySelector(".secret-input");
+                secretInput.addEventListener("mousedown", function (e) {
+                    e.stopPropagation();
+                });
+                secretInput.addEventListener("touchstart", function (e) {
+                    e.stopPropagation();
+                });
+
+                var captionMain = div.querySelector(".caption-main");
+                if (captionMain && secretInput) {
+                    captionMain.addEventListener("input", function () {
+                        var text = this.textContent;
+                        var currentSecretLen = secretInput.value.length;
+                        var dynamicMax = MAX_LETTERS - currentSecretLen;
+                        var allowedLen = Math.min(
+                            MAX_CAPTION_LENGTH,
+                            dynamicMax,
+                        );
+                        if (text.length > allowedLen) {
+                            this.textContent = text.substring(0, allowedLen);
+                            var range = document.createRange();
+                            var sel = window.getSelection();
+                            range.selectNodeContents(this);
+                            range.collapse(false);
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    });
+                    captionMain.addEventListener("keydown", function (e) {
+                        if (e.key === "Enter") e.preventDefault();
+                    });
+                    secretInput.addEventListener("input", function () {
+                        var text = this.value;
+                        var currentCaptionLen = captionMain.textContent.length;
+                        var dynamicMax = MAX_LETTERS - currentCaptionLen;
+                        var allowedLen = Math.min(
+                            MAX_SECRET_LENGTH,
+                            dynamicMax,
+                        );
+                        if (text.length > allowedLen) {
+                            this.value = text.substring(0, allowedLen);
+                        }
+                    });
+                }
+
+                makeDraggable(div);
+                return div;
+            }
+
+            //#explaining_the_function#
+            function ejectPhoto(src) {
+                if (slot.firstChild) slot.removeChild(slot.firstChild);
+                var p = createPolaroidElement(
+                    src,
+                    getTodayDateString(),
+                    null,
+                    null,
+                    null,
+                    false,
+                    true,
+                );
+                p.classList.add("ejecting");
+                slot.appendChild(p);
+            }
+
+            //#explaining_the_function#
+            shutter.addEventListener("click", function (e) {
+                e.preventDefault();
+                flash.classList.add("flash-active");
+                setTimeout(function () {
+                    flash.classList.remove("flash-active");
+                }, 100);
+                printSound.currentTime = 0;
+                printSound.play().catch(function () {});
+                var ctx = canvas.getContext("2d");
+                canvas.width = 400;
+                canvas.height = 400;
+                var gradient = ctx.createLinearGradient(0, 0, 400, 400);
+                gradient.addColorStop(0, "#667eea");
+                gradient.addColorStop(1, "#764ba2");
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 400, 400);
+                ejectPhoto(canvas.toDataURL("image/jpeg"));
+            });
+
+            //#explaining_the_function#
+            resetBtn.addEventListener("click", function () {
+                document.querySelectorAll(".polaroid").forEach(function (p) {
+                    p.remove();
+                });
+                desk.innerHTML = "";
+                slot.innerHTML = "";
+            });
+
+            //#explaining_the_function#
+            downloadBtn.addEventListener("click", function () {
+                cameraZone.style.display = "none";
+                btnContainer.style.display = "none";
+                if (typeof html2canvas !== "undefined") {
+                    html2canvas(document.body, {
+                        backgroundColor: "#d4d4d4",
+                        useCORS: true,
+                        scale: 2,
+                    })
+                        .then(function (c) {
+                            var link = document.createElement("a");
+                            link.download = "my-polaroid-collage.png";
+                            link.href = c.toDataURL();
+                            link.click();
+                            cameraZone.style.display = "flex";
+                            btnContainer.style.display = "flex";
+                        })
+                        .catch(function () {
+                            cameraZone.style.display = "flex";
+                            btnContainer.style.display = "flex";
+                        });
+                } else {
+                    alert("Download requires html2canvas library.");
+                    cameraZone.style.display = "flex";
+                    btnContainer.style.display = "flex";
+                }
+            });
+
+            //#explaining_the_function#
+            function makeDraggable(elm) {
+                var startX = 0,
+                    startY = 0,
+                    initialLeft = 0,
+                    initialTop = 0;
+
+                elm.addEventListener("mousedown", dragStart);
+                elm.addEventListener("touchstart", dragStart, {
+                    passive: false,
+                });
+
+                function dragStart(e) {
+                    if (
+                        e.target.closest(".caption-main") ||
+                        e.target.closest(".flip-btn") ||
+                        e.target.closest(".secret-input")
+                    ) {
+                        return;
+                    }
+                    e.preventDefault();
+
+                    if (elm.classList.contains("developing-slow")) {
+                        elm.classList.remove("developing-slow");
+                        void elm.offsetWidth;
+                        elm.classList.add("developing-fast");
+                    }
+
+                    if (elm.classList.contains("ejecting")) {
+                        var rect = elm.getBoundingClientRect();
+                        elm.classList.remove("ejecting");
+                        document.body.appendChild(elm);
+                        elm.style.position = "absolute";
+                        elm.style.left = rect.left + "px";
+                        elm.style.top = rect.top + "px";
+                        elm.style.transform = "rotate(0deg)";
+                    } else if (elm.parentNode !== document.body) {
+                        var rect = elm.getBoundingClientRect();
+                        document.body.appendChild(elm);
+                        elm.style.left = rect.left + "px";
+                        elm.style.top = rect.top + "px";
+                    }
+
+                    elm.style.zIndex = 10000;
+
+                    if (e.type === "touchstart") {
+                        startX = e.touches[0].clientX;
+                        startY = e.touches[0].clientY;
+                    } else {
+                        startX = e.clientX;
+                        startY = e.clientY;
+                    }
+
+                    initialLeft = elm.offsetLeft;
+                    initialTop = elm.offsetTop;
+
+                    document.addEventListener("mouseup", dragEnd);
+                    document.addEventListener("mousemove", dragMove);
+                    document.addEventListener("touchend", dragEnd);
+                    document.addEventListener("touchmove", dragMove, {
+                        passive: false,
+                    });
+                }
+
+                function dragMove(e) {
+                    e.preventDefault();
+                    var currentX, currentY;
+                    if (e.type === "touchmove") {
+                        currentX = e.touches[0].clientX;
+                        currentY = e.touches[0].clientY;
+                    } else {
+                        currentX = e.clientX;
+                        currentY = e.clientY;
+                    }
+                    var dx = currentX - startX;
+                    var dy = currentY - startY;
+                    elm.style.left = initialLeft + dx + "px";
+                    elm.style.top = initialTop + dy + "px";
+                    var tilt = Math.max(-8, Math.min(8, dx * 0.1));
+                    elm.style.transform = "rotate(" + tilt + "deg) scale(1.05)";
+                }
+
+                function dragEnd() {
+                    document.removeEventListener("mouseup", dragEnd);
+                    document.removeEventListener("mousemove", dragMove);
+                    document.removeEventListener("touchend", dragEnd);
+                    document.removeEventListener("touchmove", dragMove);
+                    elm.classList.add("can-share");
+                    elm.style.zIndex = "auto";
+                    var finalRot = (Math.random() * 20 - 10).toFixed(1);
+                    elm.style.transition = "transform 0.2s, box-shadow 0.2s";
+                    elm.style.transform =
+                        "rotate(" + finalRot + "deg) scale(1)";
+                    setTimeout(function () {
+                        elm.style.transition = "";
+                    }, 200);
+                }
+            }
+        </script>
+    </body>
+</html>
